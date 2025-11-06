@@ -11,7 +11,9 @@
 # Output of the go coverage tool
 *.out
 
-# Go workspace file
+# Go modules
+go.mod
+go.sum
 go.work
 
 # Dependency directories
