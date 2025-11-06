@@ -215,6 +215,6 @@ This project demonstrates understanding of:
 
 ---
 
-**Author**: Your Name  
+**Author**: IbsYoussef
 **Purpose**: Backend internship interview project  
 **Timeline**: 2 weeks to MVP
