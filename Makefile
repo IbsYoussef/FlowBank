@@ -45,6 +45,21 @@ up:
 down:
 	docker compose -f deploy/docker-compose.yml down
 
+# --- Application Build Targets ---
+.PHONY: build-api build-consumer build-producer
+
+build-api:
+	@echo "🛠️ Building flowbank-api..."
+	go build -o ./build/api ./cmd/api/main.go
+
+build-consumer:
+	@echo "🛠️ Building flowbank-consumer..."
+	go build -o ./build/consumer ./cmd/consumer/main.go
+
+build-producer:
+	@echo "🛠️ Building flowbank-producer..."
+	go build -o ./build/producer ./cmd/producer/main.go
+
 # Restart services
 restart: down up
 
