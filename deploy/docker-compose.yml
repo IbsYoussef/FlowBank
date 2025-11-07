@@ -1,0 +1,173 @@
+version: '3.8'
+
+services:
+  # RedPanda - Kafka-compatible streaming platform
+  # RedPanda - Kafka-compatible streaming platform
+  redpanda:
+    image: confluentinc/cp-kafka:7.6.1 
+    container_name: flowbank-redpanda
+    ports:
+      - "19092:9092" # Maps external localhost:19092 to Kafka internal 9092
+    environment:
+      # --- Zookeeper-based Kafka Configuration (SIMPLE) ---
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181 # Connects to the Zookeeper service
+      
+      # --- Listener Setup (Minimal) ---
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://redpanda:9092 # Internal network address
+      
+      # --- Other Configuration ---
+      KAFKA_LOG_DIRS: /tmp/kafka-logs # Standard log path
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      
+    healthcheck:
+      # Check the internal port for the API server using the standard tool
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 60s 
+    networks:
+      - flowbank-network
+    depends_on:
+      zookeeper:
+        condition: service_healthy # Wait for Zookeeper to be ready
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: flowbank-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - flowbank-network
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "echo stat | nc localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # RedPanda Console - Web UI for Kafka
+  # redpanda-console:
+  #   image: docker.redpanda.com/vectorized/console:v2.7.2
+  #   container_name: flowbank-console
+  #   entrypoint: /bin/sh
+  #   command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+  #   environment:
+  #     CONFIG_FILEPATH: /tmp/config.yml
+  #     CONSOLE_CONFIG_FILE: |
+  #       kafka:
+  #         brokers: ["redpanda:9092"]
+  #         schemaRegistry:
+  #           enabled: true
+  #           urls: ["http://redpanda:8081"]
+  #       redpanda:
+  #         adminApi:
+  #           enabled: true
+  #           urls: ["http://redpanda:9644"]
+  #   ports:
+  #     - "8090:8080"
+  #   networks:
+  #     - flowbank-network
+  #   depends_on:
+  #     - redpanda
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: flowbank-postgres
+    environment:
+      POSTGRES_DB: flowbank
+      POSTGRES_USER: flowbank_user
+      POSTGRES_PASSWORD: flowbank_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - flowbank-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowbank_user -d flowbank"]
+      interval: 10s
+      timeout: 10s    # Increased to 10s
+      retries: 10     # Increased attempts
+      start_period: 60s # Increased to 60s (1 full minute)
+    restart: on-failure
+
+  # Producer Service - Generates fake transactions
+  producer:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.producer
+    container_name: flowbank-producer
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      KAFKA_TOPIC: transactions
+      PRODUCER_INTERVAL: 3s
+    networks:
+      - flowbank-network
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    restart: on-failure
+
+  # Consumer Service - Processes transactions from Kafka
+  consumer:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.consumer
+    container_name: flowbank-consumer
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      KAFKA_TOPIC: transactions
+      KAFKA_GROUP_ID: flowbank-consumer-group
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: flowbank
+      DB_USER: flowbank_user
+      DB_PASSWORD: flowbank_pass
+    networks:
+      - flowbank-network
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+  # API Service - REST API for querying data
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    container_name: flowbank-api
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: flowbank
+      DB_USER: flowbank_user
+      DB_PASSWORD: flowbank_pass
+      API_PORT: 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - flowbank-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+networks:
+  flowbank-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
