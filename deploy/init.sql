@@ -1,6 +1,3 @@
--- Connect to the flowbank database
-\connect flowbank;
-
 -- 1. Users Table: Stores the current state (balance) of each user account.
 -- Note: BIGINT is used for the balance, representing the amount in cents.
 CREATE TABLE IF NOT EXISTS users (
