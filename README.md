@@ -18,11 +18,11 @@ FlowBank demonstrates a distributed system for processing banking transactions u
 │   Producer   │────────>│   RedPanda   │────────>│   Consumer   │
 │ (Fake Txns)  │ publish │   (Kafka)    │ consume │  (Validate)  │
 └──────────────┘         └──────────────┘         └──────┬───────┘
-                                                          │
-                                                          │ persist
-                                                          ▼
+                                                         │
+                                                         │ persist
+                                                         ▼
 ┌──────────────┐                                  ┌──────────────┐
-│  REST API    │<─────────── read ───────────────│  PostgreSQL  │
+│  REST API    │ <─────────── read ─────────────> │  PostgreSQL  │
 │ (Query Data) │                                  │  (Storage)   │
 └──────────────┘                                  └──────────────┘
 ```
@@ -179,12 +179,12 @@ type User struct {
 ## 📝 Roadmap
 
 - [x] Project structure and Docker setup
-- [ ] Implement Kafka producer/consumer
-- [ ] Build transaction generator (Producer)
-- [ ] Build transaction processor (Consumer)
+- [x] Implement Kafka producer/consumer
+- [x] Build transaction generator (Producer)
+- [x] Build transaction processor (Consumer)
 - [ ] Implement REST API endpoints
-- [ ] Add validation and business logic
-- [ ] Add comprehensive logging
+- [x] Add validation and business logic
+- [x] Add comprehensive logging
 - [ ] Add metrics and observability
 - [ ] Add unit and integration tests
 - [ ] Add CI/CD pipeline
