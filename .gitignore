@@ -5,6 +5,12 @@
 *.so
 *.dylib
 
+# Ignore Go executables
+/build/
+api
+consumer
+producer
+
 # Test binary, built with `go test -c`
 *.test
 
