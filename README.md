@@ -182,7 +182,7 @@ type User struct {
 - [x] Implement Kafka producer/consumer
 - [x] Build transaction generator (Producer)
 - [x] Build transaction processor (Consumer)
-- [ ] Implement REST API endpoints
+- [x] Implement REST API endpoints
 - [x] Add validation and business logic
 - [x] Add comprehensive logging
 - [ ] Add metrics and observability
