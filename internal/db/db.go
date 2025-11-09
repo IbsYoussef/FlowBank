@@ -7,6 +7,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -128,4 +129,75 @@ func (d *DB) SaveTransaction(ctx context.Context, dbTx pgx.Tx, tx *model.Transac
 		tx.ID, tx.UserID, tx.Amount, tx.Type, tx.Description, tx.MerchantName, tx.Status, tx.CreatedAt,
 	)
 	return err
+}
+
+// GetUser retrieves a user's current account details (including balance).
+func (d *DB) GetUser(ctx context.Context, userID uuid.UUID) (*model.User, error) {
+	var user model.User
+
+	row := d.pool.QueryRow(ctx, `
+		SELECT user_id, email, user_name, current_balance, created_at, updated_at 
+		FROM users 
+		WHERE user_id = $1`, userID)
+
+	err := row.Scan(
+		&userID,
+		&user.Email,
+		&user.Name,
+		&user.Balance,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, fmt.Errorf("user not found")
+		}
+		return nil, fmt.Errorf("error querying user: %w", err)
+	}
+
+	return &user, nil
+}
+
+// GetUserTransactions retrieves a list of transaction records for a given user.
+func (d *DB) GetUserTransactions(ctx context.Context, userID uuid.UUID) ([]model.Transaction, error) {
+	rows, err := d.pool.Query(ctx, `
+		SELECT 
+			transaction_id, user_id, amount, transaction_type, description, merchant_name, status, created_at
+		FROM transactions 
+		WHERE user_id = $1 
+		ORDER BY created_at DESC 
+		LIMIT 20`, // Limit to 20 for a reasonable history response
+		userID)
+
+	if err != nil {
+		return nil, fmt.Errorf("error querying transactions: %w", err)
+	}
+	defer rows.Close()
+
+	var transactions []model.Transaction
+
+	for rows.Next() {
+		var tx model.Transaction
+		err := rows.Scan(
+			&tx.ID,
+			&tx.UserID,
+			&tx.Amount,
+			&tx.Type,
+			&tx.Description,
+			&tx.MerchantName,
+			&tx.Status,
+			&tx.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning transaction row: %w", err)
+		}
+		transactions = append(transactions, tx)
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("error after iterating through transaction rows: %w", rows.Err())
+	}
+
+	return transactions, nil
 }
