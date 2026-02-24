@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowBank Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1f2937;
+        }
+
+        .stat-value.green { color: #10b981; }
+        .stat-value.red { color: #ef4444; }
+        .stat-value.blue { color: #3b82f6; }
+        .stat-value.purple { color: #8b5cf6; }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .chart-card h3 {
+            margin-bottom: 15px;
+            color: #1f2937;
+            font-size: 1.2rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .transactions-feed {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .transactions-feed h3 {
+            margin-bottom: 15px;
+            color: #1f2937;
+            position: sticky;
+            top: 0;
+            background: white;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .transaction-item {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+
+        .transaction-info {
+            flex: 1;
+        }
+
+        .transaction-merchant {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+
+        .transaction-user {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .transaction-amount {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .transaction-amount.credit {
+            color: #10b981;
+        }
+
+        .transaction-amount.debit {
+            color: #ef4444;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>🏦 FlowBank Dashboard</h1>
+        <div class="live-indicator">
+            <span class="live-dot"></span>
+            <span>Live Updates</span>
+        </div>
+    </header>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Transactions</div>
+            <div class="stat-value blue" id="totalTransactions">0</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Money In</div>
+            <div class="stat-value green" id="moneyIn">$0.00</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Money Out</div>
+            <div class="stat-value red" id="moneyOut">$0.00</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Average Transaction</div>
+            <div class="stat-value purple" id="avgTransaction">$0.00</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Transaction Type Distribution</h3>
+            <div class="chart-container">
+                <canvas id="typeChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Money Flow</h3>
+            <div class="chart-container">
+                <canvas id="flowChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Top Merchants</h3>
+            <div class="chart-container">
+                <canvas id="merchantChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-card">
+            <h3>Hourly Volume (Last 24h)</h3>
+            <div class="chart-container">
+                <canvas id="hourlyChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Transactions Feed -->
+    <div class="transactions-feed">
+        <h3>Live Transaction Feed</h3>
+        <div id="transactionsFeed"></div>
+    </div>
+</div>
+
+<script>
+    // Chart instances
+    let typeChart, flowChart, merchantChart, hourlyChart;
+
+    // Initialize charts
+    function initCharts() {
+        // Type Distribution Pie Chart
+        const typeCtx = document.getElementById('typeChart').getContext('2d');
+        typeChart = new Chart(typeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Credits', 'Debits'],
+                datasets: [{
+                    data: [0, 0],
+                    backgroundColor: ['#10b981', '#ef4444'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Money Flow Bar Chart
+        const flowCtx = document.getElementById('flowChart').getContext('2d');
+        flowChart = new Chart(flowCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Money In', 'Money Out'],
+                datasets: [{
+                    label: 'Amount ($)',
+                    data: [0, 0],
+                    backgroundColor: ['#10b981', '#ef4444']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Top Merchants Bar Chart
+        const merchantCtx = document.getElementById('merchantChart').getContext('2d');
+        merchantChart = new Chart(merchantCtx, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Transaction Count',
+                    data: [],
+                    backgroundColor: '#8b5cf6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Hourly Volume Line Chart
+        const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
+        hourlyChart = new Chart(hourlyCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Credits',
+                        data: [],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Debits',
+                        data: [],
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // Update dashboard with analytics data
+    function updateDashboard(data) {
+        // Update stat cards
+        document.getElementById('totalTransactions').textContent = data.total_transactions.toLocaleString();
+        document.getElementById('moneyIn').textContent = '$' + data.money_in;
+        document.getElementById('moneyOut').textContent = '$' + data.money_out;
+        document.getElementById('avgTransaction').textContent = '$' + data.average_amount;
+
+        // Update type distribution chart
+        typeChart.data.datasets[0].data = [data.credit_count, data.debit_count];
+        typeChart.update();
+
+        // Update money flow chart
+        const moneyInNum = parseFloat(data.money_in.replace(/,/g, ''));
+        const moneyOutNum = parseFloat(data.money_out.replace(/,/g, ''));
+        flowChart.data.datasets[0].data = [moneyInNum, moneyOutNum];
+        flowChart.update();
+
+        // Update top merchants chart
+        if (data.top_merchants && data.top_merchants.length > 0) {
+            merchantChart.data.labels = data.top_merchants.map(m => m.merchant_name);
+            merchantChart.data.datasets[0].data = data.top_merchants.map(m => m.count);
+            merchantChart.update();
+        }
+
+        // Update hourly volume chart
+        if (data.hourly_volume && data.hourly_volume.length > 0) {
+            hourlyChart.data.labels = data.hourly_volume.map(h => {
+                const date = new Date(h.hour);
+                return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            });
+            hourlyChart.data.datasets[0].data = data.hourly_volume.map(h => parseFloat(h.credit_total.replace(/,/g, '')));
+            hourlyChart.data.datasets[1].data = data.hourly_volume.map(h => parseFloat(h.debit_total.replace(/,/g, '')));
+            hourlyChart.update();
+        }
+
+        // Update recent transactions feed
+        if (data.recent_transactions && data.recent_transactions.length > 0) {
+            const feed = document.getElementById('transactionsFeed');
+            feed.innerHTML = data.recent_transactions.map(tx => `
+                    <div class="transaction-item">
+                        <div class="transaction-info">
+                            <div class="transaction-merchant">${tx.merchant_name || 'Unknown Merchant'}</div>
+                            <div class="transaction-user">${tx.user_name} • ${new Date(tx.created_at).toLocaleString()}</div>
+                        </div>
+                        <div>
+                            <div class="transaction-amount ${tx.type}">
+                                ${tx.type === 'credit' ? '+' : '-'}$${tx.amount}
+                            </div>
+                            <span class="status-badge status-${tx.status.toLowerCase()}">${tx.status}</span>
+                        </div>
+                    </div>
+                `).join('');
+        }
+    }
+
+    // Fetch analytics data
+    async function fetchAnalytics() {
+        try {
+            const response = await fetch('/api/v1/analytics');
+            const data = await response.json();
+            updateDashboard(data);
+        } catch (error) {
+            console.error('Error fetching analytics:', error);
+        }
+    }
+
+    // Initialize
+    initCharts();
+    fetchAnalytics();
+
+    // Refresh data every 5 seconds
+    setInterval(fetchAnalytics, 5000);
+</script>
+</body>
+</html>

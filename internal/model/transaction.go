@@ -29,3 +29,43 @@ type User struct {
 	CreatedAt time.Time `json:"created_at" db:"created_at"`   // Timestamp when the user account was created.
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`   // Timestamp of the last successful update (e.g., a change in balance).
 }
+
+// DashboardStats contains aggregated statistics for the dashboard
+type DashboardStats struct {
+	TotalTransactions  int64              `json:"total_transactions"`
+	TotalVolume        int64              `json:"total_volume"`
+	AverageAmount      int64              `json:"average_amount"`
+	CreditCount        int64              `json:"credit_count"`
+	DebitCount         int64              `json:"debit_count"`
+	MoneyIn            int64              `json:"money_in"`
+	MoneyOut           int64              `json:"money_out"`
+	TopMerchants       []MerchantStats    `json:"top_merchants"`
+	RecentTransactions []TransactionDTO   `json:"recent_transactions"`
+	HourlyVolume       []HourlyVolumeData `json:"hourly_volume"`
+}
+
+// MerchantStats represents transaction counts per merchant
+type MerchantStats struct {
+	MerchantName string `json:"merchant_name"`
+	Count        int64  `json:"count"`
+	TotalAmount  int64  `json:"total_amount"`
+}
+
+// TransactionDTO is a simplified transaction for the dashboard
+type TransactionDTO struct {
+	ID           string `json:"id"`
+	UserName     string `json:"user_name"`
+	Amount       int64  `json:"amount"`
+	Type         string `json:"type"`
+	MerchantName string `json:"merchant_name"`
+	Status       string `json:"status"`
+	CreatedAt    string `json:"created_at"`
+}
+
+// HourlyVolumeData represents transaction volume per hour
+type HourlyVolumeData struct {
+	Hour        string `json:"hour"`
+	CreditTotal int64  `json:"credit_total"`
+	DebitTotal  int64  `json:"debit_total"`
+	Count       int64  `json:"count"`
+}

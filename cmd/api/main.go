@@ -42,7 +42,6 @@ func main() {
 	svc := service.NewService(database)
 
 	// 2. Setup routes and 3. Implement handlers
-	// 2. Setup routes and 3. Implement handlers
 	mux := http.NewServeMux()
 
 	// Health check
@@ -54,10 +53,19 @@ func main() {
 	// Main API Endpoint: /api/v1/accounts/{userID}
 	mux.HandleFunc("/api/v1/accounts/", handleGetAccountDetails(svc))
 
+	// ========== NEW: Dashboard Routes ==========
+	// Analytics endpoint for dashboard
+	mux.HandleFunc("/api/v1/analytics", handleGetAnalytics(svc))
+
+	// Dasboard route
+	mux.HandleFunc("/dashboard", handleDashboard())
+	// ===========================================
+
 	port := "8080"
 	log.Printf("API listening on %s", port)
+	log.Printf("Dashboard available at http://localhost:%s/dashboard", port)
 
-	// --- CORRECTED SERVER STARTUP ---
+	// --- SERVER STARTUP ---
 	server := &http.Server{
 		Addr:         ":" + port,
 		Handler:      mux,
@@ -106,5 +114,41 @@ func handleGetAccountDetails(svc *service.Service) http.HandlerFunc {
 		if err := json.NewEncoder(w).Encode(details); err != nil {
 			log.Printf("ERROR: Failed to write response JSON: %v", err)
 		}
+	}
+}
+
+// handleGetAnalytics returns aggregated analytics data for the dashboard
+func handleGetAnalytics(svc *service.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		stats, err := svc.GetDashboardStats(r.Context())
+		if err != nil {
+			log.Printf("ERROR: Failed to fetch dashboard stats: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(stats); err != nil {
+			log.Printf("ERROR: Failed to write response JSON: %v", err)
+		}
+	}
+}
+
+// handleDashboard serves the dashboard HTML page
+func handleDashboard() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Serve the dashboard HTML file
+		http.ServeFile(w, r, "/app/web/dashboard.html")
 	}
 }
