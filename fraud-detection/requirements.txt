@@ -1,0 +1,13 @@
+# FastAPI and server
+fastapi==0.136.1
+uvicorn==0.47.0
+
+# Pydantic dependencies
+pydantic==2.13.4
+pydantic-settings==2.14.1
+
+# PostgreSQL driver
+asyncpg==0.31.0
+
+# Kafka
+confluent-kafka==2.14.0
