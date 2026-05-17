@@ -58,5 +58,8 @@ Thumbs.db
 tmp/
 temp/
 
+# Python pycache
+__pycache__
+
 # Python virtual environment
 fraud-detection/venv/
