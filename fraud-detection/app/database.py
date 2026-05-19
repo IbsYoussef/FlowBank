@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 import asyncpg
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,20 @@ class FraudDatabase:
         if self.pool:
             await self.pool.close()
             logger.info("Database connection pool closed")
+    
+    async def get_fraud_scores(self, limit: int = 100, status: Optional[str] = None) -> list:
+        try:
+            async with self.pool.acquire() as conn:
+                result = await conn.fetch(f"""
+                    SELECT * FROM fraud_scores
+                    {f"WHERE status = '{status}'" if status else ""}
+                    ORDER BY scored_at DESC
+                    LIMIT $1
+                """, limit)
+                return [dict(row) for row in result]
+        except Exception as e:
+            logger.error("Error getting fraud scores: %s", e)
+            return []
     
     async def insert_fraud_score(self, fraud_score) -> bool:
         try:
