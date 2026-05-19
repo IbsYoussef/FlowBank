@@ -109,9 +109,9 @@ No new URL or deployment is needed. The same dashboard endpoint displays the upd
 
 - [x] Project setup, virtual environment, dependencies
 - [x] FastAPI app running with root and health endpoints
-- [ ] Pydantic models
-- [ ] Kafka consumer
-- [ ] Fraud detection logic
+- [x] Pydantic models
+- [x] Kafka consumer
+- [x] Fraud detection logic
 - [ ] PostgreSQL integration
 - [ ] Docker integration
 - [ ] Dashboard updates
