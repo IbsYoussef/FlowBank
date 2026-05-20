@@ -18,7 +18,7 @@ class FraudStatus(str, Enum):
     FLAGGED = "flagged"
 
 class Transaction(BaseModel):
-    id: str
+    transaction_id: str
     user_id: str
     amount: int
     type: TransactionType

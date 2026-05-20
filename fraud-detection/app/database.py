@@ -73,7 +73,7 @@ class FraudDatabase:
                     SELECT COUNT(*) FROM transactions
                     WHERE user_id = $1
                     AND amount = $2
-                    AND id != $3
+                    AND transaction_id != $3
                     AND created_at > NOW() - INTERVAL '{seconds} seconds'
                                              """, user_id, amount, transaction_id)
                 return result > 0

@@ -13,7 +13,7 @@ class FraudDetector:
         result = await self.db.check_duplicate_transaction(
             user_id=transaction.user_id,
             amount=transaction.amount,
-            transaction_id=transaction.id
+            transaction_id=transaction.transaction_id
         )
         return result
     
@@ -66,7 +66,7 @@ class FraudDetector:
         processing_time_ms = (time.time() - start_time) * 1000
 
         return FraudScore(
-            transaction_id=transaction.id,
+            transaction_id=transaction.transaction_id,
             risk_score=risk_score,
             status=status,
             triggered_rules=triggered_rules,

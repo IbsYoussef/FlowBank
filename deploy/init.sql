@@ -45,3 +45,24 @@ VALUES
 ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'alice@flowbank.com', 'Alice Smith', 100000),
 ('b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'bob@flowbank.com', 'Bob Johnson', 50000)
 ON CONFLICT (user_id) DO NOTHING;
+
+-- 3. Fraud Scores Table: Stores fraud detection results for each transaction
+CREATE TABLE IF NOT EXISTS fraud_scores(
+    fraud_score_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    transaction_id UUID NOT NULL REFERENCES transactions(transaction_id),
+    risk_score VARCHAR(10) NOT NULL CHECK (risk_score IN ('low', 'medium', 'high')),
+    status VARCHAR(20) NOT NULL CHECK (status IN ('clean', 'suspicious', 'flagged')),
+    triggered_rules TEXT[] NOT NULL DEFAULT '{}',
+    confidence DECIMAL(3,2) NOT NULL CHECK (confidence >= 0 AND confidence <= 1),
+    processing_time_ms DECIMAL(10,2),
+    scored_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+-- Indexes for query performance
+CREATE INDEX IF NOT EXISTS idx_fraud_scores_transaction_id ON fraud_scores(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_fraud_scores_status ON fraud_scores(status);
+CREATE INDEX IF NOT EXISTS idx_fraud_scores_scored_at ON fraud_scores(scored_at DESC);
+
+-- Index on transactions table for fraud detection queries
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id_created_at ON transactions(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id_amount ON transactions(user_id, amount);
