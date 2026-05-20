@@ -112,7 +112,7 @@ No new URL or deployment is needed. The same dashboard endpoint displays the upd
 - [x] Pydantic models
 - [x] Kafka consumer
 - [x] Fraud detection logic
-- [ ] PostgreSQL integration
+- [x] PostgreSQL integration
 - [ ] Docker integration
 - [ ] Dashboard updates
 - [ ] Deployment
