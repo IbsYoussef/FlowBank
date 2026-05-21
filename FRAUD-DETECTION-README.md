@@ -113,6 +113,6 @@ No new URL or deployment is needed. The same dashboard endpoint displays the upd
 - [x] Kafka consumer
 - [x] Fraud detection logic
 - [x] PostgreSQL integration
-- [ ] Docker integration
+- [x] Docker integration
 - [ ] Dashboard updates
 - [ ] Deployment
