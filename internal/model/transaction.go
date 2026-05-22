@@ -69,3 +69,18 @@ type HourlyVolumeData struct {
 	DebitTotal  int64  `json:"debit_total"`
 	Count       int64  `json:"count"`
 }
+
+// FraudScoreDTO represents a fraud score joined with transaction data for live dashboard
+type FraudScoreDTO struct {
+	TransactionID    string   `json:"transaction_id"`
+	RiskScore        string   `json:"risk_score"`
+	Status           string   `json:"status"`
+	TriggeredRules   []string `json:"triggered_rules"`
+	Confidence       float64  `json:"confidence"`
+	ProcessingTimeMS float64  `json:"processing_time_ms"`
+	ScoredAt         string   `json:"scored_at"`
+	Amount           int64    `json:"amount"`
+	Type             string   `json:"type"`
+	MerchantName     string   `json:"merchant_name"`
+	UserName         string   `json:"user_name"`
+}
