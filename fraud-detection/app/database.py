@@ -40,6 +40,13 @@ class FraudDatabase:
     async def insert_fraud_score(self, fraud_score) -> bool:
         try:
             async with self.pool.acquire() as conn:
+                exists = await conn.fetchval(
+                    "SELECT EXISTS(SELECT 1 FROM transactions WHERE transaction_id = $1)",
+                    fraud_score.transaction_id
+                )
+                if not exists:
+                    logger.warning("Transaction %s not yet in database, skipping", fraud_score.transaction_id)
+                    return False
                 await conn.execute("""
                     INSERT INTO fraud_scores (
                         transaction_id, risk_score, status,
@@ -54,10 +61,10 @@ class FraudDatabase:
                     fraud_score.processing_time_ms,
                     fraud_score.scored_at
                 )
-                logger.info(f"Inserted fraud score for transaction {fraud_score.transaction_id}")
+                logger.info("Inserted fraud score for transaction %s", fraud_score.transaction_id)
                 return True
         except Exception as e:
-            logger.error(f"Error inserting fraud score: {e}")
+            logger.error("Error inserting fraud score: %s", e)
             return False
     
     async def check_duplicate_transaction(

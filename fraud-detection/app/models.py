@@ -1,5 +1,5 @@
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AliasChoices
 from datetime import datetime, timezone
 from typing import Optional, List
 
@@ -18,7 +18,7 @@ class FraudStatus(str, Enum):
     FLAGGED = "flagged"
 
 class Transaction(BaseModel):
-    transaction_id: str
+    transaction_id: str = Field(validation_alias=AliasChoices('transaction_id', 'id'))
     user_id: str
     amount: int
     type: TransactionType

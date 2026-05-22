@@ -1,5 +1,6 @@
 import logging
 import json
+import asyncio
 from confluent_kafka import Consumer
 from app.models import Transaction
 
@@ -37,8 +38,9 @@ class TransactionConsumer:
             try:
                 data = json.loads(msg.value().decode("utf-8"))
                 transaction = Transaction(**data)
+                await asyncio.sleep(3) # Delay to allow writing transaction to database
                 fraud_score = await fraud_detector.score_transaction(transaction)
                 await database.insert_fraud_score(fraud_score)
-                logger.info("Processed transaction %s - %s", transaction.id, fraud_score.status)
+                logger.info("Processed transaction %s - %s", transaction.transaction_id, fraud_score.status)
             except Exception as e:
                 logger.error("Error processing message: %s", e)
