@@ -1,8 +1,6 @@
 services:
   producer:
-    build:
-      context: .
-      dockerfile: deploy/Dockerfile.producer
+    image: 084576276551.dkr.ecr.eu-west-2.amazonaws.com/flowbank-producer:latest
     environment:
       KAFKA_BROKERS: ${KAFKA_BROKERS}
       KAFKA_TOPIC: ${KAFKA_TOPIC}
@@ -13,9 +11,7 @@ services:
     restart: unless-stopped
 
   consumer:
-    build:
-      context: .
-      dockerfile: deploy/Dockerfile.consumer
+    image: 084576276551.dkr.ecr.eu-west-2.amazonaws.com/flowbank-consumer:latest
     environment:
       KAFKA_BROKERS: ${KAFKA_BROKERS}
       KAFKA_TOPIC: ${KAFKA_TOPIC}
@@ -31,9 +27,7 @@ services:
     restart: unless-stopped
 
   api:
-    build:
-      context: .
-      dockerfile: deploy/Dockerfile.api
+    image: 084576276551.dkr.ecr.eu-west-2.amazonaws.com/flowbank-api:latest
     environment:
       DB_HOST: ${DB_HOST}
       DB_PORT: 5432
@@ -46,9 +40,7 @@ services:
     restart: unless-stopped
 
   fraud-detection:
-    build:
-      context: .
-      dockerfile: deploy/Dockerfile.fraud
+    image: 084576276551.dkr.ecr.eu-west-2.amazonaws.com/flowbank-fraud-detection:latest
     environment:
       DATABASE_URL: ${DATABASE_URL}
       KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKERS}
