@@ -3,6 +3,7 @@ import json
 import asyncio
 import os
 import tempfile
+import base64
 from confluent_kafka import Consumer
 from app.models import Transaction
 
@@ -24,10 +25,16 @@ class TransactionConsumer:
         ca_cert = os.environ.get("KAFKA_CA_CERT")
 
         if sasl_username and sasl_password and ca_cert:
-            # Write CA cert to temp file
+            # # Decode base64 if needed
+            try:
+                decoded_cert = base64.b64decode(ca_cert).decode('utf-8')
+            except Exception:
+                decoded_cert = ca_cert # raw PEM
+            
             ca_file = tempfile.NamedTemporaryFile(mode='w', suffix='.pem', delete=False)
-            ca_file.write(ca_cert)
+            ca_file.write(decoded_cert)
             ca_file.flush()
+            ca_file.close()
 
             config.update({
                 "security.protocol": "SASL_SSL",

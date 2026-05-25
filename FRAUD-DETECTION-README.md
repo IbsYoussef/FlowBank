@@ -114,5 +114,7 @@ No new URL or deployment is needed. The same dashboard endpoint displays the upd
 - [x] Fraud detection logic
 - [x] PostgreSQL integration
 - [x] Docker integration
-- [ ] Dashboard updates
-- [ ] Deployment
+- [x] Dashboard updates
+- [x] Deployment
+
+Live URL: http://flowbank-prod.eba-fcdmxpas.eu-west-2.elasticbeanstalk.com/dashboard
