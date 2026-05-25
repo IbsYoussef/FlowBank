@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"flowbank/internal/model"
 
 	"github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl/plain"
 )
 
 // Producer abstracts the kafka client for publishing messages.
@@ -19,11 +21,34 @@ type Producer struct {
 
 // NewProducer creates and initializes a new Kafka Producer instance.
 func NewProducer(brokers []string, topic string) (*Producer, error) {
+	dialer := &kafka.Dialer{
+		Timeout:   10 * time.Second,
+		DualStack: true,
+	}
+
+	// If SASL Credentials are set, use SASL_SSL for Aiven
+	saslUser := os.Getenv("KAFKA_SASL_USERNAME")
+	saslPass := os.Getenv("KAFKA_SASL_PASSWORD")
+	caCert := os.Getenv("KAFKA_CA_CERT")
+
+	if saslUser != "" && saslPass != "" && caCert != "" {
+		tlsConfig, err := NewTLSConfig(caCert)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create TLS config: %w", err)
+		}
+		dialer.TLS = tlsConfig
+		dialer.SASLMechanism = plain.Mechanism{
+			Username: saslUser,
+			Password: saslPass,
+		}
+	}
+
 	// A kafka.Writer is used for producing messages.
 	w := kafka.NewWriter(kafka.WriterConfig{
 		Brokers:      brokers,
 		Topic:        topic,
 		BatchTimeout: 10 * time.Millisecond, // Wait up to 10ms to batch messages
+		Dialer:       dialer,
 	})
 
 	fmt.Printf("Kafka Producer initialized for topic: %s on brokers: %v\n", topic, brokers)

@@ -3,23 +3,17 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flowbank/internal/db"
-	"flowbank/internal/model"
 	"fmt"
 	"log"
 	"os"
 	"time"
 
+	"flowbank/internal/db"
+	internalkafka "flowbank/internal/kafka"
+	"flowbank/internal/model"
+
 	"github.com/segmentio/kafka-go"
-)
-
-// TODO: Connect to database
-// TODO: Validate and persist to DB
-
-const (
-	topic         = "transactions"
-	brokerAddress = "redpanda:9092" // Hostname of RedPanda container
-	groupID       = "flowbank-consumer-group"
+	"github.com/segmentio/kafka-go/sasl/plain"
 )
 
 func main() {
@@ -48,13 +42,44 @@ func main() {
 	defer database.Close()
 
 	// 3. Initialise Kafka consumer
+	brokers := os.Getenv("KAFKA_BROKERS")
+	kafkaTopic := os.Getenv("KAFKA_TOPIC")
+	kafkaGroupID := os.Getenv("KAFKA_GROUP_ID")
+
+	if brokers == "" || kafkaTopic == "" || kafkaGroupID == "" {
+		log.Fatal("FATAL: Required Kafka environment variable not set.")
+	}
+
+	dialer := &kafka.Dialer{
+		Timeout:   10 * time.Second,
+		DualStack: true,
+	}
+
+	// If SASL credentials are set, use SASL_SSL for Aiven
+	saslUser := os.Getenv("KAFKA_SASL_USERNAME")
+	saslPass := os.Getenv("KAFKA_SASL_PASSWORD")
+	caCert := os.Getenv("KAFKA_CA_CERT")
+
+	if saslUser != "" && saslPass != "" && caCert != "" {
+		tlsConfig, err := internalkafka.NewTLSConfig(caCert)
+		if err != nil {
+			log.Fatalf("FATAL: Failed to create TLS config: %v", err)
+		}
+		dialer.TLS = tlsConfig
+		dialer.SASLMechanism = plain.Mechanism{
+			Username: saslUser,
+			Password: saslPass,
+		}
+	}
+
 	r := kafka.NewReader(kafka.ReaderConfig{
-		Brokers:  []string{brokerAddress},
-		Topic:    topic,
-		GroupID:  groupID,
+		Brokers:  []string{brokers},
+		Topic:    kafkaTopic,
+		GroupID:  kafkaGroupID,
 		MinBytes: 10e3,
 		MaxBytes: 10e6,
 		MaxWait:  1 * time.Second,
+		Dialer:   dialer,
 	})
 
 	// 4. Start consuming transactions

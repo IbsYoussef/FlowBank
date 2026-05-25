@@ -1,6 +1,8 @@
 import logging
 import json
 import asyncio
+import os
+import tempfile
 from confluent_kafka import Consumer
 from app.models import Transaction
 
@@ -9,11 +11,34 @@ logger = logging.getLogger(__name__)
 class TransactionConsumer:
     def __init__(self, bootstrap_servers: str, topic: str, group_id: str = "fraud-detection-group"):
         self.topic = topic
-        self.consumer = Consumer({
+
+        config = {
             "bootstrap.servers": bootstrap_servers,
             "group.id": group_id,
             "auto.offset.reset": "latest"
-        })
+        }
+
+        # If SASL credentials are set, use SASL_SSL for Aiven
+        sasl_username = os.environ.get("KAFKA_SASL_USERNAME")
+        sasl_password = os.environ.get("KAFKA_SASL_PASSWORD")
+        ca_cert = os.environ.get("KAFKA_CA_CERT")
+
+        if sasl_username and sasl_password and ca_cert:
+            # Write CA cert to temp file
+            ca_file = tempfile.NamedTemporaryFile(mode='w', suffix='.pem', delete=False)
+            ca_file.write(ca_cert)
+            ca_file.flush()
+
+            config.update({
+                "security.protocol": "SASL_SSL",
+                "sasl.mechanism": "PLAIN",
+                "sasl.username": sasl_username,
+                "sasl.password": sasl_password,
+                "ssl.ca.location": ca_file.name,
+            })
+            logger.info("Kafka consumer configured with SASL_SSL")
+        
+        self.consumer = Consumer(config)
         logger.info("Kafka consumer initialised")
     
     def start(self):
