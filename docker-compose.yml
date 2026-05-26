@@ -1,0 +1,51 @@
+services:
+  producer:
+    image: 084576276551.dkr.ecr.eu-west-2.amazonaws.com/flowbank-producer:latest
+    environment:
+      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+      PRODUCER_INTERVAL: 3s
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
+      KAFKA_CA_CERT: ${KAFKA_CA_CERT}
+    restart: unless-stopped
+
+  consumer:
+    image: 084576276551.dkr.ecr.eu-west-2.amazonaws.com/flowbank-consumer:latest
+    environment:
+      KAFKA_BROKERS: ${KAFKA_BROKERS}
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+      KAFKA_GROUP_ID: flowbank-consumer-group
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
+      KAFKA_CA_CERT: ${KAFKA_CA_CERT}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    restart: unless-stopped
+
+  api:
+    image: 084576276551.dkr.ecr.eu-west-2.amazonaws.com/flowbank-api:latest
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      API_PORT: 8080
+    ports:
+      - "80:8080"
+    restart: unless-stopped
+
+  fraud-detection:
+    image: 084576276551.dkr.ecr.eu-west-2.amazonaws.com/flowbank-fraud-detection:latest
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BROKERS}
+      KAFKA_TOPIC: ${KAFKA_TOPIC}
+      KAFKA_SASL_USERNAME: ${KAFKA_SASL_USERNAME}
+      KAFKA_SASL_PASSWORD: ${KAFKA_SASL_PASSWORD}
+      KAFKA_CA_CERT: ${KAFKA_CA_CERT}
+    restart: unless-stopped

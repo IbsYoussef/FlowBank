@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flowbank/internal/db"
-	"flowbank/internal/service"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"flowbank/internal/db"
+	"flowbank/internal/service"
 )
 
 func main() {
@@ -25,7 +26,7 @@ func main() {
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 
-	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=require",
 		dbUser, dbPass, dbHost, dbPort, dbName)
 
 	if dbUser == "" {
@@ -60,6 +61,9 @@ func main() {
 	// Dasboard route
 	mux.HandleFunc("/dashboard", handleDashboard())
 	// ===========================================
+
+	// Fraud scores endpoint for dashboard
+	mux.HandleFunc("/api/v1/fraud-scores", handleGetFraudScores(svc))
 
 	port := "8080"
 	log.Printf("API listening on %s", port)
@@ -150,5 +154,28 @@ func handleDashboard() http.HandlerFunc {
 
 		// Serve the dashboard HTML file
 		http.ServeFile(w, r, "/app/web/dashboard.html")
+	}
+}
+
+// handleGetFraudScores returns recent fraud scores for the dashboard
+func handleGetFraudScores(svc *service.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		scores, err := svc.GetFraudScores(r.Context(), 50)
+		if err != nil {
+			log.Printf("ERROR: Failed to fetch fraud scores: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		if err := json.NewEncoder(w).Encode(scores); err != nil {
+			log.Printf("ERROR: Failed to write response JSON: %v", err)
+		}
 	}
 }

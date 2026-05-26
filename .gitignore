@@ -19,7 +19,6 @@ producer
 
 # Go modules
 go.mod
-go.sum
 go.work
 
 # Dependency directories
@@ -57,3 +56,13 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Python pycache
+__pycache__
+
+# Python virtual environment
+fraud-detection/venv/
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml

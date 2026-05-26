@@ -2,8 +2,9 @@ package db
 
 import (
 	"context"
-	"flowbank/internal/model"
 	"math"
+
+	"flowbank/internal/model"
 )
 
 // GetAnalytics retrieves aggregated analytics data for the dashboard
@@ -143,4 +144,57 @@ func (d *DB) GetAnalytics(ctx context.Context) (*model.DashboardStats, error) {
 	}
 
 	return stats, nil
+}
+
+// GetFraudScores retrieves recent fraud scores joined with transaction data
+func (d *DB) GetFraudScores(ctx context.Context, limit int) ([]model.FraudScoreDTO, error) {
+	rows, err := d.pool.Query(ctx, `
+		SELECT
+			fs.transaction_id,
+			fs.risk_score,
+			fs.status,
+			fs.triggered_rules,
+			fs.confidence,
+			fs.processing_time_ms,
+			fs.scored_at,
+			t.amount,
+			t.transaction_type,
+			t.merchant_name,
+			u.user_name
+		FROM fraud_scores fs
+		JOIN transactions t ON fs.transaction_id = t.transaction_id
+		JOIN users u ON t.user_id = u.user_id
+		ORDER BY fs.scored_at DESC
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var scores []model.FraudScoreDTO
+	for rows.Next() {
+		var s model.FraudScoreDTO
+		var scoredAt interface{}
+		err := rows.Scan(
+			&s.TransactionID,
+			&s.RiskScore,
+			&s.Status,
+			&s.TriggeredRules,
+			&s.Confidence,
+			&s.ProcessingTimeMS,
+			&scoredAt,
+			&s.Amount,
+			&s.Type,
+			&s.MerchantName,
+			&s.UserName,
+		)
+		if err != nil {
+			return nil, err
+		}
+		s.ScoredAt = scoredAt.(interface{ String() string }).String()
+		scores = append(scores, s)
+	}
+
+	return scores, nil
 }

@@ -99,3 +99,45 @@ func (s *Service) GetDashboardStats(ctx context.Context) (*DashboardResponse, er
 
 	return response, nil
 }
+
+// FraudScoreResponseDTO with formatted amounts
+type FraudScoreResponseDTO struct {
+	TransactionID    string   `json:"transaction_id"`
+	RiskScore        string   `json:"risk_score"`
+	Status           string   `json:"status"`
+	TriggeredRules   []string `json:"triggered_rules"`
+	Confidence       float64  `json:"confidence"`
+	ProcessingTimeMS float64  `json:"processing_time_ms"`
+	ScoredAt         string   `json:"scored_at"`
+	Amount           Amount   `json:"amount"`
+	Type             string   `json:"type"`
+	MerchantName     string   `json:"merchant_name"`
+	UserName         string   `json:"user_name"`
+}
+
+// GetFraudScores retrieves recent fraud scores formatted for the dashboard
+func (s *Service) GetFraudScores(ctx context.Context, limit int) ([]FraudScoreResponseDTO, error) {
+	scores, err := s.db.GetFraudScores(ctx, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	response := make([]FraudScoreResponseDTO, len(scores))
+	for i, score := range scores {
+		response[i] = FraudScoreResponseDTO{
+			TransactionID:    score.TransactionID,
+			RiskScore:        score.RiskScore,
+			Status:           score.Status,
+			TriggeredRules:   score.TriggeredRules,
+			Confidence:       score.Confidence,
+			ProcessingTimeMS: score.ProcessingTimeMS,
+			ScoredAt:         score.ScoredAt,
+			Amount:           Amount(score.Amount),
+			Type:             score.Type,
+			MerchantName:     score.MerchantName,
+			UserName:         score.UserName,
+		}
+	}
+
+	return response, nil
+}
