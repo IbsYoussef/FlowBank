@@ -1,6 +1,10 @@
 # FlowBank Quick Start Guide
 
-This guide will help you get FlowBank up and running in under 5 minutes.
+Get FlowBank up and running in under 5 minutes.
+
+> **Live Demo**: [flowbank-prod.eba-fcdmxpas.eu-west-2.elasticbeanstalk.com/dashboard](http://flowbank-prod.eba-fcdmxpas.eu-west-2.elasticbeanstalk.com/dashboard)
+
+---
 
 ## ✅ Prerequisites Check
 
@@ -17,19 +21,24 @@ docker compose version
 
 # Check Go (optional, for local development)
 go version
-# Expected: go version go1.22.x or higher
+# Expected: go version go1.26.x or higher
 ```
+
+---
 
 ## 🚀 Step 1: Clone and Navigate
 
 ```bash
-# If you haven't already, navigate to the project
-cd flowbank
+# Clone the repository
+git clone https://github.com/IbsYoussef/FlowBank.git
+cd FlowBank
 
 # Verify structure
 ls -la
-# You should see: cmd/, internal/, deploy/, Makefile, README.md, etc.
+# You should see: cmd/, internal/, deploy/, fraud-detection/, Makefile, README.md, etc.
 ```
+
+---
 
 ## 🏗️ Step 2: Start the Infrastructure
 
@@ -41,11 +50,13 @@ make up
 
 This will:
 
-1. Start RedPanda (Kafka) on ports 19092, 8090
-2. Start PostgreSQL on port 5432
-3. Build and start Producer service
-4. Build and start Consumer service
-5. Build and start API service
+1. Start RedPanda (Kafka) on ports 19092, 9092
+2. Start Zookeeper on port 2181
+3. Start PostgreSQL on port 5432
+4. Build and start Producer service
+5. Build and start Consumer service
+6. Build and start API service on port 8080
+7. Build and start Fraud Detection service on port 8000
 
 **Expected output**:
 
@@ -55,6 +66,8 @@ This will:
    - RedPanda Console: http://localhost:8090
    - PostgreSQL:       localhost:5432
 ```
+
+---
 
 ## 🔍 Step 3: Verify Services
 
@@ -67,14 +80,17 @@ make ps
 **Expected output**:
 
 ```
-NAME                    IMAGE                  STATUS
-flowbank-api            flowbank-api           Up 30 seconds
-flowbank-consumer       flowbank-consumer      Up 30 seconds
-flowbank-producer       flowbank-producer      Up 30 seconds
-flowbank-postgres       postgres:16-alpine     Up 35 seconds (healthy)
-flowbank-redpanda       redpanda:v24.2.9       Up 35 seconds (healthy)
-flowbank-console        console:v2.7.2         Up 30 seconds
+NAME                          IMAGE                      STATUS
+flowbank-api                  flowbank-api               Up 30 seconds
+flowbank-consumer             flowbank-consumer          Up 30 seconds
+flowbank-producer             flowbank-producer          Up 30 seconds
+flowbank-fraud-detection      flowbank-fraud-detection   Up 30 seconds
+flowbank-postgres             postgres:16-alpine         Up 35 seconds (healthy)
+flowbank-redpanda             cp-kafka:7.6.1             Up 35 seconds (healthy)
+flowbank-zookeeper            cp-zookeeper:7.6.1         Up 35 seconds (healthy)
 ```
+
+---
 
 ## 🧪 Step 4: Test the Pipeline
 
@@ -105,11 +121,21 @@ SELECT * FROM users;
 -- View recent transactions (may be empty initially)
 SELECT * FROM transactions ORDER BY created_at DESC LIMIT 5;
 
+-- View fraud scores
+SELECT transaction_id, risk_score, status, triggered_rules
+FROM fraud_scores ORDER BY scored_at DESC LIMIT 5;
+
 -- Exit
 \q
 ```
 
-### Test 3: Monitor Kafka Topics
+### Test 3: Check Fraud Scores API
+
+```bash
+curl http://localhost:8080/api/v1/fraud-scores | jq
+```
+
+### Test 4: Monitor Kafka Topics
 
 **Option A: Command Line**
 
@@ -126,7 +152,7 @@ make kafka-topics
 3. Click on "transactions"
 4. You should see messages flowing in real-time!
 
-### Test 4: Watch Service Logs
+### Test 5: Watch Service Logs
 
 View logs from all services:
 
@@ -150,9 +176,11 @@ make logs-api
 **Expected producer output**:
 
 ```
-Producer heartbeat: 2025-11-06T10:30:00Z
-Producer heartbeat: 2025-11-06T10:30:05Z
+PUBLISHED: TxID abc-123 | User a0eebc99... | Type debit | Amount 5000 cents
+PUBLISHED: TxID def-456 | User b1eebc99... | Type credit | Amount 12500 cents
 ```
+
+---
 
 ## 📊 Step 5: Visualize the Data Flow
 
@@ -176,24 +204,35 @@ make logs-consumer
 make db-shell
 # Then repeatedly run:
 SELECT COUNT(*) FROM transactions;
+SELECT COUNT(*) FROM fraud_scores;
 ```
 
-Watch as transactions flow from Producer → Kafka → Consumer → Database!
+Watch as transactions flow from Producer → Kafka → Consumer → Database, and fraud scores appear in real-time!
 
-## 🎯 Step 6: Test API Endpoints (Coming Soon)
+---
 
-Once you implement the API endpoints, test them:
+## 🎯 Step 6: Test API Endpoints
 
 ```bash
-# Get all users
-curl http://localhost:8080/users | jq
+# Get user account details
+curl http://localhost:8080/api/v1/accounts/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11 | jq
 
-# Get specific user
-curl http://localhost:8080/users/550e8400-e29b-41d4-a716-446655440000 | jq
+# Get analytics data
+curl http://localhost:8080/api/v1/analytics | jq
 
-# Get user transactions
-curl http://localhost:8080/users/550e8400-e29b-41d4-a716-446655440000/transactions | jq
+# Get fraud scores
+curl http://localhost:8080/api/v1/fraud-scores | jq
+
+# View dashboard in browser
+open http://localhost:8080/dashboard
 ```
+
+```bash
+# Coming soon: curl http://localhost:8080/users | jq
+# Coming soon: curl http://localhost:8080/users/{user_id}/transactions | jq
+```
+
+---
 
 ## 🛑 Stopping Services
 
@@ -209,6 +248,8 @@ To clean up everything including volumes:
 make clean
 ```
 
+---
+
 ## 🐛 Troubleshooting
 
 ### Services won't start
@@ -219,6 +260,7 @@ docker ps
 
 # Check for port conflicts
 lsof -i :8080  # API
+lsof -i :8000  # Fraud Detection
 lsof -i :19092 # Kafka
 lsof -i :5432  # PostgreSQL
 
@@ -249,6 +291,10 @@ docker exec -it flowbank-redpanda rpk topic list
 docker exec -it flowbank-redpanda rpk topic consume transactions
 ```
 
+### Fraud scores not appearing
+
+The fraud detection service has a 3-second delay to avoid a race condition with the Go consumer. Wait a few seconds after transactions appear in the feed before checking fraud scores.
+
 ### Build errors
 
 ```bash
@@ -258,22 +304,28 @@ make build
 make up
 ```
 
+---
+
 ## 📝 Next Steps
 
 Now that your environment is running:
 
-1. **Implement Producer Logic** - Generate realistic fake transactions
-2. **Implement Consumer Logic** - Process and validate transactions
-3. **Implement API Endpoints** - Query users and transactions
-4. **Add Tests** - Unit and integration tests
-5. **Add Observability** - Logging, metrics, monitoring
+1. **Explore the Dashboard** - Open http://localhost:8080/dashboard
+2. **Review the Architecture** - See [ARCHITECTURE.md](./ARCHITECTURE.md)
+3. **Add Tests** - Unit and integration tests
+4. **Add Observability** - Logging, metrics, monitoring
+5. **Try the Live Demo** - [flowbank-prod.eba-fcdmxpas.eu-west-2.elasticbeanstalk.com/dashboard](http://flowbank-prod.eba-fcdmxpas.eu-west-2.elasticbeanstalk.com/dashboard)
+
+---
 
 ## 🎓 Learning Resources
 
 - Review [ARCHITECTURE.md](./ARCHITECTURE.md) for system design details
-- Check [README.md](./README.md) for project overview
+- Check [README.md](../README.md) for project overview
 - Explore RedPanda Console: http://localhost:8090
-- Read the code in `cmd/`, `internal/` directories
+- Read the code in `cmd/`, `internal/`, `fraud-detection/` directories
+
+---
 
 ## ✨ Quick Commands Reference
 
@@ -290,6 +342,4 @@ Now that your environment is running:
 
 ---
 
-**Need help?** Check the [README.md](./README.md) or [ARCHITECTURE.md](./ARCHITECTURE.md) for more details.
-
-Good luck with your internship interview! 🚀
+**Need help?** Check the [README.md](../README.md) or [ARCHITECTURE.md](./ARCHITECTURE.md) for more details.
