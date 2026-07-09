@@ -36,8 +36,8 @@ up:
 	docker compose -f deploy/docker-compose.yml up -d
 	@echo ""
 	@echo "✅ FlowBank services started!"
+	@echo "   - Dashboard:        http://localhost:8080/dashboard"
 	@echo "   - API:              http://localhost:8080/health"
-	@echo "   - RedPanda Console: http://localhost:8090"
 	@echo "   - PostgreSQL:       localhost:5432"
 	@echo ""
 
