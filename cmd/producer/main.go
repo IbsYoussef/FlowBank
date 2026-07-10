@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"time"
 
@@ -81,6 +82,14 @@ func main() {
 	defer ticker.Stop()
 
 	ctx := context.Background()
+
+	// Start minimal HTTP for Render service
+	go func () {
+		http.HandleFunc("/health", func (w http.ResponseWriter, r *http.Request)  {
+			fmt.Fprintf(w, `{"status":"ok"}`)
+		})
+		http.ListenAndServe(":8080", nil)
+	}()
 
 	for {
 		select {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
@@ -81,6 +82,13 @@ func main() {
 		MaxWait:  1 * time.Second,
 		Dialer:   dialer,
 	})
+
+	go func () {
+		http.HandleFunc("/health", func (w http.ResponseWriter, r *http.Request)  {
+			fmt.Fprintf(w, `{"status":"ok"}`)
+		})
+		http.ListenAndServe(":8080", nil)
+	}()
 
 	// 4. Start consuming transactions
 	for {
