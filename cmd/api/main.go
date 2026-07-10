@@ -26,7 +26,7 @@ func main() {
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 
-	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=require",
 		dbUser, dbPass, dbHost, dbPort, dbName)
 
 	if dbUser == "" {
