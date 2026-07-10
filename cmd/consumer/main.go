@@ -18,6 +18,20 @@ import (
 )
 
 func main() {
+	// Start HTTP server
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+		// Start minimal HTTP for Render service
+	go func () {
+		http.HandleFunc("/health", func (w http.ResponseWriter, r *http.Request)  {
+			fmt.Fprintf(w, `{"status":"ok"}`)
+		})
+		http.ListenAndServe(":"+port, nil)
+	}()
+
 	log.Println("🏦 FlowBank Consumer starting...")
 	ctx := context.Background()
 
@@ -82,13 +96,6 @@ func main() {
 		MaxWait:  1 * time.Second,
 		Dialer:   dialer,
 	})
-
-	go func () {
-		http.HandleFunc("/health", func (w http.ResponseWriter, r *http.Request)  {
-			fmt.Fprintf(w, `{"status":"ok"}`)
-		})
-		http.ListenAndServe(":8080", nil)
-	}()
 
 	// 4. Start consuming transactions
 	for {

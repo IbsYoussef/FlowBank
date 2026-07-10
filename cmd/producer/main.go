@@ -48,6 +48,20 @@ func generateFakeTransaction() model.Transaction {
 }
 
 func main() {
+	// Start HTTP server first before anything else
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+		// Start minimal HTTP for Render service
+	go func () {
+		http.HandleFunc("/health", func (w http.ResponseWriter, r *http.Request)  {
+			fmt.Fprintf(w, `{"status":"ok"}`)
+		})
+		http.ListenAndServe(":"+port, nil)
+	}()
+
 	// Randomly pick user
 	rand.Seed(time.Now().UnixNano())
 
@@ -82,14 +96,6 @@ func main() {
 	defer ticker.Stop()
 
 	ctx := context.Background()
-
-	// Start minimal HTTP for Render service
-	go func () {
-		http.HandleFunc("/health", func (w http.ResponseWriter, r *http.Request)  {
-			fmt.Fprintf(w, `{"status":"ok"}`)
-		})
-		http.ListenAndServe(":8080", nil)
-	}()
 
 	for {
 		select {
