@@ -52,3 +52,8 @@ async def health():
 async def get_fraud_scores(request: Request, limit: int = 100, status: Optional[str] = None):
     scores = await request.app.state.db.get_fraud_scores(limit=limit, status=status)
     return {"scores": scores, "count": len(scores)}
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
