@@ -3,15 +3,14 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flowbank/internal/db"
+	"flowbank/internal/service"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
-
-	"flowbank/internal/db"
-	"flowbank/internal/service"
 )
 
 func main() {
@@ -26,8 +25,13 @@ func main() {
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 
-	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=require",
-		dbUser, dbPass, dbHost, dbPort, dbName)
+	sslMode := os.Getenv("DB_SSLMODE")
+	if sslMode == "" {
+		sslMode = "disable"
+	}
+
+	databaseURL := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		dbUser, dbPass, dbHost, dbPort, dbName, sslMode)
 
 	if dbUser == "" {
 		log.Fatal("FATAL: Database connection environment variables not set.")
